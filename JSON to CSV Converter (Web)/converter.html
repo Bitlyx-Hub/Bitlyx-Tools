@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to CSV Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="container mx-auto max-w-2xl px-4">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">JSON to CSV Converter</h1>
+            
+            <div class="mb-6">
+                <label for="jsonInput" class="block text-sm font-medium text-gray-700 mb-2">JSON Array Input</label>
+                <textarea 
+                    id="jsonInput" 
+                    placeholder='[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]'
+                    class="w-full h-40 p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm">
+                </textarea>
+            </div>
+
+            <div class="mb-6">
+                <button 
+                    id="convertBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Convert to CSV
+                </button>
+            </div>
+
+            <div id="errorContainer" class="hidden mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p id="errorMessage" class="text-red-700 text-sm"></p>
+            </div>
+
+            <div id="csvContainer" class="hidden">
+                <label for="csvOutput" class="block text-sm font-medium text-gray-700 mb-2">CSV Output</label>
+                <pre id="csvOutput" class="w-full p-4 bg-gray-50 border border-gray-300 rounded-lg overflow-x-auto text-sm font-mono"></pre>
+                <button 
+                    id="copyBtn"
+                    class="mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Copy to Clipboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const jsonInput = document.getElementById('jsonInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const csvOutput = document.getElementById('csvOutput');
+        const csvContainer = document.getElementById('csvContainer');
+        const errorContainer = document.getElementById('errorContainer');
+        const errorMessage = document.getElementById('errorMessage');
+        const copyBtn = document.getElementById('copyBtn');
+
+        function jsonToCsv(jsonArray) {
+            if (!Array.isArray(jsonArray) || jsonArray.length === 0) {
+                throw new Error('Input must be a non-empty array');
+            }
+
+            const headers = Object.keys(jsonArray[0]);
+            const csv = [headers.join(',')];
+
+            jsonArray.forEach(row => {
+                const values = headers.map(header => {
+                    const value = row[header] ?? '';
+                    const stringValue = String(value);
+                    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                        return `"${stringValue.replace(/"/g, '""')}"`;
+                    }
+                    return stringValue;
+                });
+                csv.push(values.join(','));
+            });
+
+            return csv.join('\n');
+        }
+
+        function convert() {
+            errorContainer.classList.add('hidden');
+            csvContainer.classList.add('hidden');
+
+            try {
+                const jsonText = jsonInput.value.trim();
+                if (!jsonText) {
+                    throw new Error('Please enter JSON data');
+                }
+
+                const jsonArray = JSON.parse(jsonText);
+                const csv = jsonToCsv(jsonArray);
+                csvOutput.textContent = csv;
+                csvContainer.classList.remove('hidden');
+            } catch (error) {
+                errorMessage.textContent = error instanceof SyntaxError 
+                    ? 'Invalid JSON: ' + error.message 
+                    : error.message;
+                errorContainer.classList.remove('hidden');
+            }
+        }
+
+        convertBtn.addEventListener('click', convert);
+
+        jsonInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                convert();
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(csvOutput.textContent).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
